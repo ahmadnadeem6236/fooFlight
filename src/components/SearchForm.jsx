@@ -4,6 +4,9 @@ import Autocomplete from "@mui/material/Autocomplete";
 import useFlightStore from "../store";
 import useDebounce from "../hooks/useDebounce"; // Import custom debounce hook
 import { useEffect } from "react";
+import TripType from "./TripType";
+import PassengerSelector from "./PassengerSelector";
+import ClassType from "./ClassType";
 
 function SearchForm() {
   const {
@@ -11,18 +14,21 @@ function SearchForm() {
     destination,
     departureDate,
     returnDate,
-    passengers,
+    travellers,
     airports,
     loading,
     setOrigin,
+    classType,
     setDestination,
     setDepartureDate,
     setReturnDate,
+    tripType,
     fetchAirports,
+    fetchFlights,
   } = useFlightStore();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedQuery = useDebounce(searchQuery, 500); // Debounce input
+  const debouncedQuery = useDebounce(searchQuery, 1000); // Debounce input
 
   useEffect(() => {
     if (debouncedQuery) fetchAirports(debouncedQuery);
@@ -34,8 +40,21 @@ function SearchForm() {
       destination,
       departureDate,
       returnDate,
-      passengers,
+      travellers,
+      tripType,
+      classType,
     });
+    if (origin && destination && departureDate) {
+      fetchFlights({
+        originSkydId: origin.skyId,
+        destinationSkyId: destination.skyId,
+        originEntityId: origin.originEntityId,
+        destinationEntityId: destination.entityId,
+        date: departureDate,
+        returnDate: returnDate,
+        cabinClass: classType,
+      });
+    }
   };
 
   const fromAirports = [];
@@ -44,20 +63,28 @@ function SearchForm() {
   listAirports.map((item) => fromAirports.push(item.data[0]));
   listAirports.map((item) => toAirports.push(item.data[0]));
 
-  console.log("origin", origin);
-  console.log("des", destination);
-  console.log("date", returnDate);
+  console.log(listAirports);
 
   return (
     <div className=" p-6 flex flex-col gap-2">
-      <div className="bg-amber-400">p</div>
+      <div className="flex items-center justify-center md:justify-start gap-2">
+        <div>
+          <TripType />
+        </div>
+        <div>
+          <PassengerSelector />
+        </div>
+        <div>
+          <ClassType />
+        </div>
+      </div>
       <div className="flex flex-col md:grid  md:grid-cols-2 gap-4 ">
         <div>
           {/* FROM (Origin) */}
           <Autocomplete
             options={fromAirports}
             getOptionLabel={(option) =>
-              `${option.presentation.suggestionTitle}`
+              `${option.presentation?.suggestionTitle}`
             }
             value={origin}
             onChange={(event, newValue) => setOrigin(newValue)}
@@ -133,18 +160,21 @@ function SearchForm() {
             onChange={(e) => setDepartureDate(e.target.value)}
           />
         </div>
-        <div>
-          {/* RETURN DATE */}
-          <TextField
-            type="date"
-            className="w-full"
-            label="Return Date (Optional)"
-            slotProps={{ inputLabel: { shrink: true } }}
-            value={returnDate}
-            onChange={(e) => setReturnDate(e.target.value)}
-          />
-        </div>
-
+        {tripType === "round-trip" ? (
+          <div>
+            {/* RETURN DATE */}
+            <TextField
+              type="date"
+              className="w-full"
+              label="Return Date (Optional)"
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+            />
+          </div>
+        ) : (
+          ""
+        )}
         <div className=" col-span-4 flex justify-center">
           {/* SEARCH BUTTON */}
           <Button variant="contained" onClick={handleSearch}>
